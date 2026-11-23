@@ -7,6 +7,7 @@
 #define POISON 0xDED
 #define DUMP_FILE "DUMP_GRAPHVIZ.txt"
 #define LATEX_DUMP "LaTeX_dump.tex"
+#define EPS 0.000000001
 
 enum Type_Data
 {
@@ -95,4 +96,7 @@ Node* differentiate (Node* cur_node);
 Node* cope_node (Node* cur_node);
 Node* diff_pow (Node* cur_node);
 Node* diff_log (Node* cur_node);
+
+int const_holding_num_num (Node* cur_node, Variables* variables, int cnt_call);
+int const_holding_var_num (Node* cur_node, int cnt_call);
 #endif

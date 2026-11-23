@@ -312,7 +312,6 @@ void variable_type_dump (Node* node_dump, FILE* dump_file)
     }
 }
 
-
 void dump_link (Node* parent_node, Node* child_node, FILE* dump_file)
 {
     assert (parent_node);
@@ -462,7 +461,7 @@ void latex_dump_log (Node* cur_node, FILE* latex_dump)
     assert (cur_node);
     assert (latex_dump);
 
-    if (cur_node -> left_child_node -> type == NUM && cur_node -> left_child_node -> value.value_num == exp(1))
+    if (cur_node -> left_child_node -> type == NUM && (cur_node -> left_child_node -> value.value_num - exp(1)) < EPS)
     {
         fprintf (latex_dump, "\\ln(");
         latex_dump_node (cur_node -> right_child_node, latex_dump);
@@ -551,7 +550,7 @@ Node* cope_node (Node* cur_node)
 {
     assert (cur_node);
 
-    printf ("type:%d///value:%d\n", cur_node ->type, cur_node->value);
+    // printf ("type:%d///value:%d\n", cur_node ->type, cur_node->value);
     Node* new_node = create_node (cur_node -> type, cur_node -> value, NULL, NULL);
     if (cur_node -> left_child_node)
     {
@@ -603,4 +602,80 @@ Node* diff_log (Node* cur_node)
     return NULL;
 }
 
+int const_holding_num_num (Node* cur_node, Variables* variables, int cnt_call)
+{
+    assert (cur_node);
+    assert (variables);
+
+    if (cur_node -> left_child_node == NULL && cur_node -> right_child_node == NULL)
+        return cnt_call;
+
+    if ((cur_node -> left_child_node -> type == NUM && cur_node -> right_child_node -> type == NUM) || (cur_node -> left_child_node -> type == NUM && cur_node -> right_child_node == NULL))
+    {
+        double result = calculate_tree (cur_node, variables);
+        Data_Elem result_of_node = { .value_num = result } ;
+        Node* new_node = _NUM(result_of_node);
+        new_node -> parent_node = cur_node -> parent_node;
+        if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
+        else cur_node -> parent_node -> right_child_node = new_node;
+        delete_tree (cur_node);
+        cnt_call ++ ;
+    } else
+    {
+        const_holding_num_num (cur_node -> left_child_node, variables, cnt_call);
+        const_holding_num_num (cur_node -> right_child_node, variables, cnt_call);
+    }
+
+    return cnt_call;
+}
+
+int const_holding_var_num (Node* cur_node, int cnt_call)
+{
+    assert (cur_node);
+
+    if (cur_node -> left_child_node == NULL && cur_node -> right_child_node == NULL)
+        return cnt_call;
+
+    if (LEFT_1 && RIGHT_NO_NUM && CUR_MULL)
+    {
+        Node* new_node = _CR;
+        if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
+        else cur_node -> parent_node -> right_child_node = new_node;
+        new_node -> parent_node = cur_node -> parent_node;
+        free (cur_node -> left_child_node);
+        free (cur_node);
+        cnt_call ++ ;
+    } else if (LEFT_NO_NUM && RIGHT_1 && CUR_MULL)
+    {
+        Node* new_node = _CL;
+        if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
+        else cur_node -> parent_node -> right_child_node = new_node;
+        new_node -> parent_node = cur_node -> parent_node;
+        free (cur_node -> right_child_node);
+        free (cur_node);
+        cnt_call ++ ;
+    } else if ((LEFT_0 && CUR_MULL) || (RIGHT_0 && CUR_ADD))
+    {
+        Node* new_node = _CL;
+        if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
+        else cur_node -> parent_node -> right_child_node = new_node;
+        new_node -> parent_node = cur_node -> parent_node;
+        delete_tree (cur_node);
+        cnt_call ++ ;
+    } else if ((RIGHT_0 && CUR_MULL) /*|| (LEFT_0 && CUR_ADD)*/)
+    {
+        Node* new_node = _CR;
+        if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
+        else cur_node -> parent_node -> right_child_node = new_node;
+        new_node -> parent_node = cur_node -> parent_node;
+        delete_tree (cur_node);
+        cnt_call ++ ;
+    } else
+    {
+        const_holding_var_num (cur_node -> left_child_node, cnt_call);
+        const_holding_var_num (cur_node -> right_child_node, cnt_call);
+    }
+
+    return cnt_call ;
+}
 #endif

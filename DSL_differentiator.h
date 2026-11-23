@@ -1,9 +1,9 @@
-#ifndef DSL_DIFFERETIATOR_H
-#define DSL_DIFFERETIATOR_H
+#ifndef DSL_DIFFERENTIATOR_H
+#define DSL_DIFFERENTIATOR_H
 
 #include "differentiator.h"
 
-const Data_Elem op_add = {.type_oper = ADD};
+const Data_Elem op_add = {ADD};
 const Data_Elem op_sub = {.type_oper = SUB};
 const Data_Elem op_div = {.type_oper = DIV};
 const Data_Elem op_mull = {.type_oper = MULL};
@@ -42,5 +42,15 @@ const Data_Elem op_arcctg = {.type_oper = ARCCTG};
 
 #define _CL cope_node (cur_node -> left_child_node)
 #define _CR cope_node (cur_node -> right_child_node)
+
+#define LEFT_1 cur_node -> left_child_node -> type == NUM && fabs(cur_node -> left_child_node -> value.value_num - 1) < EPS
+#define LEFT_0 cur_node -> left_child_node -> type == NUM && fabs(cur_node -> left_child_node -> value.value_num - 0) < EPS
+#define RIGHT_1 cur_node -> right_child_node -> type == NUM && fabs(cur_node -> right_child_node -> value.value_num - 1) < EPS
+#define RIGHT_0 cur_node -> right_child_node -> type == NUM && fabs(cur_node -> right_child_node -> value.value_num - 0) < EPS
+#define LEFT_NO_NUM cur_node -> left_child_node -> type != NUM
+#define RIGHT_NO_NUM cur_node -> right_child_node -> type != NUM
+#define CUR_MULL cur_node -> type == OP && cur_node -> value.type_oper == MULL
+#define CUR_POW cur_node -> type == OP && cur_node -> value.type_oper == POW
+#define CUR_ADD cur_node -> type == OP && cur_node -> value.type_oper == ADD
 
 #endif
