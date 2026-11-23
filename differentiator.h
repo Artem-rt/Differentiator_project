@@ -1,7 +1,12 @@
 #ifndef DIFFERENTIATOR_H
 #define DIFFERENTIATOR_H
+// TODO ругистратор имен переменных - массив переменных динамический и тд
+#include <stdio.h>
+#include <math.h>
 
 #define POISON 0xDED
+#define DUMP_FILE "DUMP_GRAPHVIZ.txt"
+#define LATEX_DUMP "LaTeX_dump.tex"
 
 enum Type_Data
 {
@@ -15,10 +20,20 @@ enum Type_Op
     ADD,
     SUB,
     DIV,
-    MULL
+    MULL,
+    POW,
+    LOG,
+    SIN,
+    COS,
+    TG,
+    CTG,
+    ARCSIN,
+    ARCCOS,
+    ARCTG,
+    ARCCTG
 } ;
 
-enum Type_Var
+enum Type_Var //TODO array for vars - not use in - in union you will have ID
 {
     A_VAR,
     B_VAR,
@@ -31,11 +46,11 @@ enum Type_Var
 union Data_Elem
 {
     Type_Op type_oper;
-    int value_num;
+    double value_num;
     Type_Var type_var;
 } ;
 
-struct Variables
+struct Variables //TODO array for var
 {
     double A_VAR;
     double B_VAR;
@@ -54,10 +69,30 @@ struct Node
     Node* right_child_node;
 } ;
 
+const union Data_Elem spec_min_one = { .value_num = -1};
+const union Data_Elem spec_one_div_two = { .value_num = 0.5};
+const union Data_Elem spec_zero = { .value_num = 0};
+const union Data_Elem spec_one = { .value_num = 1};
+const union Data_Elem spec_exp = { .value_num = exp(1)};
 
 Node* create_node (Type_Data type_elem, union Data_Elem value, Node* left_child, Node* right_child);
 void delete_tree (Node* root_node);
 void print_tree_inorder (Node* start_node);
 double calculate_tree (Node* cur_node, Variables* variables);
 
+void dump_tree (Node* root_node);
+void dump_node (Node* node_dump, FILE* dump_file);
+void operator_type_dump (Node* node_dump, FILE* dump_file);
+void variable_type_dump (Node* node_dump, FILE* dump_file);
+void dump_link (Node* parent_node, Node* child_node, FILE* dump_file);
+void dump_rang (Node* child_one, Node* child_two, FILE* dump_file);
+
+void latex_dump (Node* start_node, Node* diff_start_node);
+void latex_dump_node (Node* cur_node, FILE* latex_dump);
+void latex_dump_log (Node* cur_node, FILE* latex_dump);
+
+Node* differentiate (Node* cur_node);
+Node* cope_node (Node* cur_node);
+Node* diff_pow (Node* cur_node);
+Node* diff_log (Node* cur_node);
 #endif
