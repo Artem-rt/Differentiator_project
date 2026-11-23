@@ -5,9 +5,13 @@
 #include <math.h>
 
 #define POISON 0xDED
-#define DUMP_FILE "DUMP_GRAPHVIZ.txt"
 #define LATEX_DUMP "LaTeX_dump.tex"
 #define EPS 0.000000001
+#define MAX_LEN_DATA 512
+#define CNT_OPER 14
+
+#define DUMP_FILE "DUMP_GRAPHVIZ.txt"
+#define FUNCTION_FILE "FUNCTION.TXT"
 
 enum Type_Data
 {
@@ -70,6 +74,12 @@ struct Node
     Node* right_child_node;
 } ;
 
+struct Decode_File
+{
+    const char* oper [CNT_OPER];
+    const char* var [CNT_OPER];
+} ;
+
 const union Data_Elem spec_min_one = { .value_num = -1};
 const union Data_Elem spec_one_div_two = { .value_num = 0.5};
 const union Data_Elem spec_zero = { .value_num = 0};
@@ -99,4 +109,10 @@ Node* diff_log (Node* cur_node);
 
 int const_holding_num_num (Node* cur_node, Variables* variables, int cnt_call);
 int const_holding_var_num (Node* cur_node, int cnt_call);
+
+Node* parse_preorder_tree (int preorder_file);
+long long read_preorder_file (int preorder_file, char** buffer);
+Node* parse_node (char** buffer, long long* i_buffer, Node* parent_node, int child_flag);
+void decode_type_elem_new_node (char* now_data, Type_Data* type_new_node, Data_Elem* value_new_node);
+
 #endif

@@ -3,8 +3,10 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include  <stdlib.h>
+#include <stdlib.h>
 #include <math.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "differentiator.h"
 #include "DSL_differentiator.h"
@@ -622,8 +624,8 @@ int const_holding_num_num (Node* cur_node, Variables* variables, int cnt_call)
         cnt_call ++ ;
     } else
     {
-        const_holding_num_num (cur_node -> left_child_node, variables, cnt_call);
-        const_holding_num_num (cur_node -> right_child_node, variables, cnt_call);
+        if (cur_node -> left_child_node) const_holding_num_num (cur_node -> left_child_node, variables, cnt_call);
+        if (cur_node -> right_child_node) const_holding_num_num (cur_node -> right_child_node, variables, cnt_call);
     }
 
     return cnt_call;
@@ -654,7 +656,7 @@ int const_holding_var_num (Node* cur_node, int cnt_call)
         free (cur_node -> right_child_node);
         free (cur_node);
         cnt_call ++ ;
-    } else if ((LEFT_0 && CUR_MULL) || (RIGHT_0 && CUR_ADD))
+    } else if ((LEFT_0 && CUR_MULL) || (RIGHT_0 && ((CUR_ADD) || (CUR_SUB)))) //TODO why do not work
     {
         Node* new_node = _CL;
         if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
@@ -662,7 +664,7 @@ int const_holding_var_num (Node* cur_node, int cnt_call)
         new_node -> parent_node = cur_node -> parent_node;
         delete_tree (cur_node);
         cnt_call ++ ;
-    } else if ((RIGHT_0 && CUR_MULL) /*|| (LEFT_0 && CUR_ADD)*/)
+    } else if ((RIGHT_0 && CUR_MULL) || (LEFT_0 && CUR_ADD))
     {
         Node* new_node = _CR;
         if (cur_node == cur_node -> parent_node -> left_child_node) cur_node -> parent_node -> left_child_node = new_node;
@@ -678,4 +680,176 @@ int const_holding_var_num (Node* cur_node, int cnt_call)
 
     return cnt_call ;
 }
+
+Node* parse_preorder_tree (int preorder_file)
+{
+    assert (preorder_file); //it's file descriptor!
+
+    char* buffer = NULL;
+    long long i_buffer = 0;
+    Node* root_node = NULL;
+
+    read_preorder_file (preorder_file, &buffer);
+
+    root_node = parse_node (&buffer, &i_buffer, NULL, -1);
+
+    return root_node;
+}
+
+long long read_preorder_file (int preorder_file, char** buffer)
+{
+    assert (preorder_file);
+    assert (buffer);
+
+    struct stat file_size = { .st_size = 0 } ;
+    long long len_buffer = 0;
+
+    stat (FUNCTION_FILE, &file_size);
+
+    if (((*buffer) = (char*)calloc (1, file_size.st_size)) == NULL)
+    {
+        assert (0 && ("calloc can not find memory for buffer\n"));
+    }
+
+
+    if ((len_buffer = read (preorder_file, (*buffer), file_size.st_size)) == 0)
+    {
+        printf ("commands array didn't create, sorry...\nfile: %s, func: main.cpp: %d\n", __FILE__, __LINE__);
+        assert (false);
+    }
+
+    (*buffer) [len_buffer] = '\0' ;
+
+    return len_buffer;
+}
+
+Node* parse_node (char** buffer, long long* i_buffer, Node* parent_node, int child_flag)
+{
+    assert (buffer);
+    assert (i_buffer);
+
+    if ((*buffer) [*i_buffer] != '(')
+        assert (0 && "error call parse_node, buffer [i_buffer] != \'(\'\n");
+
+    struct Node* new_node = NULL;
+    char now_data [MAX_LEN_DATA] = "";
+    long long i_now_data = 0;
+    Type_Data type_new_node;
+    union Data_Elem value_new_node = { } ;
+
+    (*i_buffer) ++ ;
+
+    while ((*buffer) [*i_buffer] != '(' && (*buffer) [*i_buffer] != ')' && (*buffer) [*i_buffer] != '\0' )
+    {
+        now_data [i_now_data] = (*buffer) [*i_buffer];
+        i_now_data ++ ;
+        (*i_buffer) ++ ;
+    }
+
+    if (strcmp(now_data, "#"))
+    {
+        decode_type_elem_new_node (now_data, &type_new_node, &value_new_node);
+        new_node = create_node (type_new_node, value_new_node, NULL, NULL);
+        new_node -> parent_node = parent_node;
+    }
+
+    if (parent_node)
+    {
+        if (child_flag)
+            parent_node -> left_child_node = new_node;
+        else
+            parent_node -> right_child_node = new_node;
+    }
+
+    if ((*buffer) [*i_buffer] == '\0')
+        assert (0 && "sintaxis error\n");
+
+    if ((*buffer) [*i_buffer] == ')')
+    {
+        (*i_buffer) ++;
+        return new_node;
+    }
+
+    if ((*buffer) [*i_buffer] == '(')
+    {
+        parse_node (buffer, i_buffer, new_node, 1);
+        parse_node (buffer, i_buffer, new_node, 0);
+        if ((*buffer) [*i_buffer] == ')')
+            while ((*buffer) [*i_buffer] == ')')
+            {
+                (*i_buffer) ++ ;
+                if ((*buffer) [*i_buffer] == '\0')
+                    break;
+            }
+
+        return new_node;
+    }
+
+    return NULL;
+}
+
+void decode_type_elem_new_node (char* now_data, Type_Data* type_new_node, Data_Elem* value_new_node)
+{
+    assert (now_data);
+    assert (type_new_node);
+    assert (value_new_node);
+
+    struct Decode_File names_type=
+    {
+        .oper =
+        {
+            "+",
+            "-",
+            "/",
+            "*",
+            "^",
+            "log",
+            "sin",
+            "cos",
+            "tg",
+            "ctg",
+            "arcsin",
+            "arccos",
+            "arctg",
+            "arcctg"
+        } ,
+
+        .var =
+        {
+            "a",
+            "b",
+            "c",
+            "x",
+            "y",
+            "z"
+        }
+    } ;
+
+    for (int i = 0; i < CNT_OPER; i ++)
+    {
+        if (!strcmp (now_data, names_type.oper [i]))
+        {
+            *type_new_node = OP;
+            value_new_node-> type_oper = (Type_Op)i;
+            return;
+        }
+    }
+
+    for (int i = 0; i < 6; i ++)
+    {
+        if (!strcmp (now_data, names_type.var [i]))
+        {
+            *type_new_node = VAR;
+            value_new_node-> type_var = (Type_Var)i;
+            return;
+        }
+    }
+
+    *type_new_node = NUM;
+    value_new_node -> value_num = atof (now_data);
+
+    return;
+}
+
+
 #endif

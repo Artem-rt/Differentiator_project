@@ -52,5 +52,6 @@ const Data_Elem op_arcctg = {.type_oper = ARCCTG};
 #define CUR_MULL cur_node -> type == OP && cur_node -> value.type_oper == MULL
 #define CUR_POW cur_node -> type == OP && cur_node -> value.type_oper == POW
 #define CUR_ADD cur_node -> type == OP && cur_node -> value.type_oper == ADD
+#define CUR_SUB cur_node -> type == OP && cur_node -> value.type_oper == SUB
 
 #endif
